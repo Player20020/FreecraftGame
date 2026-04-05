@@ -1,326 +1,374 @@
 /**
- * MINE-CASINO ENGINE v1.0
- * Разработчик: Kalajer AI Collab
- * Особенности: Система чеков, Админка "Admin2202Ai", Динамические шансы.
+ * ╔════════════════════════════════════════════════════════════════════╗
+ * ║        MINE-CASINO CORE ENGINE v2.0 - BY KALAJER COLLAB          ║
+ * ║    System: Authentication, Weighted RNG, Receipt Timer, Admin    ║
+ * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-// ==========================================
-// 1. КОНФИГУРАЦИЯ И ДАННЫЕ (Генетический код)
-// ==========================================
+"use strict";
 
-const ORE_DATA = [
-    { id: 'netherite', name: 'Незерит', symbol: '🌌', price: 2500, weight: 1 },
-    { id: 'diamond', name: 'Алмаз', symbol: '💎', price: 1000, weight: 5 },
-    { id: 'iron', name: 'Железо', symbol: '⚙️', price: 600, weight: 15 },
-    { id: 'emerald', name: 'Изумруд', symbol: '✳️', price: 450, weight: 10 },
-    { id: 'gold', name: 'Золото', symbol: '📀', price: 300, weight: 20 },
-    { id: 'lapis', name: 'Лазурит', symbol: '🔹', price: 225, weight: 25 },
-    { id: 'coal', name: 'Уголь', symbol: '🌑', price: 100, weight: 40 }
+// ==========================================
+// 1. КОНСТАНТЫ И КОНФИГУРАЦИЯ (Генетический код)
+// ==========================================
+const ORE_CONFIG = [
+    { id: 'netherite', name: { ru: 'Незерит', en: 'Netherite' }, symbol: '🌌', price: 2500, weight: 1, color: '#a476a8' },
+    { id: 'diamond', name: { ru: 'Алмаз', en: 'Diamond' }, symbol: '💎', price: 1000, weight: 5, color: '#33ebff' },
+    { id: 'iron', name: { ru: 'Железо', en: 'Iron' }, symbol: '⚙️', price: 600, weight: 15, color: '#ced4da' },
+    { id: 'emerald', name: { ru: 'Изумруд', en: 'Emerald' }, symbol: '✳️', price: 450, weight: 10, color: '#17dd62' },
+    { id: 'gold', name: { ru: 'Золото', en: 'Gold' }, symbol: '📀', price: 300, weight: 20, color: '#ffec4a' },
+    { id: 'lapis', name: { ru: 'Лазурит', en: 'Lapis' }, symbol: '🔹', price: 225, weight: 25, color: '#1a42ff' },
+    { id: 'coal', name: { ru: 'Уголь', en: 'Coal' }, symbol: '🌑', price: 100, weight: 40, color: '#3d3d3d' }
 ];
 
+const TRANSLATIONS = {
+    ru: {
+        welcome: "Добро пожаловать в игру!",
+        low_balance: "Недостаточно монет!",
+        win_msg: "Выпало: {ore}! Награда: {win} 💰",
+        promo_ok: "Промокод активирован! +{reward} 💰",
+        admin_on: "Режим Администратора включен!",
+        receipt_created: "Чек успешно создан!",
+        reg_ok: "Регистрация успешна! Теперь войдите.",
+        login_err: "Неверный логин или пароль!"
+    },
+    en: {
+        welcome: "Welcome to the game!",
+        low_balance: "Not enough coins!",
+        win_msg: "Result: {ore}! Reward: {win} 💰",
+        promo_ok: "Promo code activated! +{reward} 💰",
+        admin_on: "Admin Mode Enabled!",
+        receipt_created: "Receipt created successfully!",
+        reg_ok: "Registration success! Please login.",
+        login_err: "Invalid username or password!"
+    }
+};
+
 const APP_STATE = {
-    currentUser: null,
+    user: null,
     db: {
         users: JSON.parse(localStorage.getItem('mc_users')) || [],
+        receipts: JSON.parse(localStorage.getItem('mc_receipts')) || [],
         promos: JSON.parse(localStorage.getItem('mc_promos')) || [
-            { code: 'START', reward: 500, usedBy: [] }
-        ],
-        receipts: JSON.parse(localStorage.getItem('mc_receipts')) || []
+            { code: 'FREE600', reward: 600, usedBy: [] }
+        ]
     },
     settings: {
         sound: true,
         theme: 'dark',
         lang: 'ru'
     },
-    receiptTimer: null
-};
-
-// ==========================================
-// 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (Нейронные связи)
-// ==========================================
-
-const saveDB = () => {
-    localStorage.setItem('mc_users', JSON.stringify(APP_STATE.db.users));
-    localStorage.setItem('mc_promos', JSON.stringify(APP_STATE.db.promos));
-    localStorage.setItem('mc_receipts', JSON.stringify(APP_STATE.db.receipts));
-};
-
-const notify = (text, duration = 3000) => {
-    const container = document.getElementById('notification-container');
-    const msg = document.getElementById('notification-text');
-    msg.innerText = text;
-    container.classList.remove('hidden');
-    setTimeout(() => container.classList.add('hidden'), duration);
-};
-
-const switchScreen = (screenId) => {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-};
-
-const updateHUD = () => {
-    if (!APP_STATE.currentUser) return;
-    document.getElementById('player-name').innerText = `Игрок: ${APP_STATE.currentUser.username}`;
-    document.getElementById('player-balance').innerText = `Баланс: ${APP_STATE.currentUser.balance} 💰`;
-    
-    // Показываем кнопку админки, если роль подходящая
-    if (APP_STATE.currentUser.role === 'admin') {
-        document.getElementById('nav-admin').classList.remove('hidden');
+    timers: {
+        receipt: null
     }
 };
 
 // ==========================================
-// 3. СИСТЕМА АВТОРИЗАЦИИ (Врата в мир)
+// 2. СИСТЕМНЫЕ УТИЛИТЫ (Ядро системы)
 // ==========================================
-
-const register = (user, pass) => {
-    if (APP_STATE.db.users.find(u => u.username === user)) return notify('Ник уже занят!');
-    
-    const newUser = {
-        id: Date.now(),
-        username: user,
-        password: pass,
-        balance: 100, // Стартовый капитал
-        role: 'user',
-        history: []
-    };
-    
-    APP_STATE.db.users.push(newUser);
-    saveDB();
-    notify('Регистрация успешна! Теперь войдите.');
+const DB = {
+    save: () => {
+        localStorage.setItem('mc_users', JSON.stringify(APP_STATE.db.users));
+        localStorage.setItem('mc_receipts', JSON.stringify(APP_STATE.db.receipts));
+        localStorage.setItem('mc_promos', JSON.stringify(APP_STATE.db.promos));
+    },
+    findUser: (username) => APP_STATE.db.users.find(u => u.username.toLowerCase() === username.toLowerCase()),
+    findUserById: (id) => APP_STATE.db.users.find(u => u.id === parseInt(id))
 };
 
-const login = (user, pass) => {
-    const found = APP_STATE.db.users.find(u => u.username === user && u.password === pass);
-    if (found) {
-        APP_STATE.currentUser = found;
-        updateHUD();
-        switchScreen('screen-game');
-        notify(`С возвращением, ${user}! Приятной игры.`);
-    } else {
-        notify('Неверный ник или пароль!');
+const UI = {
+    notify: (text, type = 'info') => {
+        const container = document.getElementById('notification-container');
+        const msg = document.getElementById('notification-text');
+        msg.innerText = text;
+        container.style.display = 'flex';
+        container.classList.remove('hidden');
+        setTimeout(() => container.classList.add('hidden'), 4000);
+    },
+    
+    switchScreen: (targetId) => {
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+            s.style.display = 'none';
+        });
+        const target = document.getElementById(targetId);
+        target.style.display = 'flex';
+        setTimeout(() => target.classList.add('active'), 50);
+    },
+
+    updateHUD: () => {
+        if (!APP_STATE.user) return;
+        document.getElementById('player-name').innerText = `ID: ${APP_STATE.user.id} | ${APP_STATE.user.username}`;
+        document.getElementById('player-balance').innerText = `${APP_STATE.user.balance} 💰`;
+        if (APP_STATE.user.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+    }
+};
+
+const SoundEngine = {
+    play: (type) => {
+        if (!APP_STATE.settings.sound) return;
+        const sounds = {
+            click: 'https://www.soundjay.com/buttons/sounds/button-16.mp3',
+            win: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3',
+            spin: 'https://www.soundjay.com/buttons/sounds/button-3.mp3'
+        };
+        const audio = new Audio(sounds[type]);
+        audio.volume = 0.3;
+        audio.play().catch(() => {}); // Игнорим ошибку если браузер блокирует автоплей
     }
 };
 
 // ==========================================
-// 4. ЛОГИКА КАЗИНО (Сердце азарта)
+// 3. ЛОГИКА АВТОРИЗАЦИИ (Безопасность)
 // ==========================================
+const Auth = {
+    register: (user, pass) => {
+        if (!user || !pass) return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].login_err);
+        if (DB.findUser(user)) return UI.notify("Этот ник уже в системе!");
 
-const spinSlots = () => {
-    const cost = 10;
-    if (APP_STATE.currentUser.balance < cost) return notify('Недостаточно монет!');
-    
-    APP_STATE.currentUser.balance -= cost;
-    updateHUD();
-    
-    const display = document.getElementById('slot-result');
-    display.classList.add('spinning');
-    display.innerText = "⏳ КРУТИМ...";
+        const newUser = {
+            id: Math.floor(1000 + Math.random() * 9000),
+            username: user,
+            password: pass,
+            balance: 500,
+            role: 'user',
+            history: [],
+            regDate: new Date().toISOString()
+        };
 
-    setTimeout(() => {
-        display.classList.remove('spinning');
-        
-        // Взвешенная вероятность
+        APP_STATE.db.users.push(newUser);
+        DB.save();
+        UI.notify(TRANSLATIONS[APP_STATE.settings.lang].reg_ok);
+    },
+
+    login: (user, pass) => {
+        const found = APP_STATE.db.users.find(u => u.username === user && u.password === pass);
+        if (found) {
+            APP_STATE.user = found;
+            UI.updateHUD();
+            UI.switchScreen('screen-game');
+            UI.notify(`${TRANSLATIONS[APP_STATE.settings.lang].welcome}, ${user}!`);
+            SoundEngine.play('win');
+        } else {
+            UI.notify(TRANSLATIONS[APP_STATE.settings.lang].login_err);
+        }
+    }
+};
+
+// ==========================================
+// 4. КАЗИНО И ВЕРОЯТНОСТИ (Азарт)
+// ==========================================
+const Casino = {
+    isSpinning: false,
+
+    getWeightedResult: () => {
         const pool = [];
-        ORE_DATA.forEach(ore => {
+        ORE_CONFIG.forEach(ore => {
             for (let i = 0; i < ore.weight; i++) pool.push(ore);
         });
-        
-        const result = pool[Math.floor(Math.random() * pool.length)];
-        
-        display.innerHTML = `${result.symbol} ${result.name} ${result.symbol}`;
-        
-        // Награда за выпадение (цена руды / 10 в качестве выигрыша)
-        const win = Math.floor(result.price / 10);
-        APP_STATE.currentUser.balance += win;
-        
-        notify(`Выпало: ${result.name}! Награда: ${win} монет.`);
-        updateHUD();
-        saveDB();
-    }, 1500);
-};
+        return pool[Math.floor(Math.random() * pool.length)];
+    },
 
-// ==========================================
-// 5. МАГАЗИН И ЧЕКИ (Экономический узел)
-// ==========================================
+    spin: () => {
+        if (Casino.isSpinning) return;
+        const cost = 10;
 
-const generateReceipt = (ore) => {
-    if (APP_STATE.currentUser.balance < ore.price) return notify('Не хватает монет!');
-    
-    APP_STATE.currentUser.balance -= ore.price;
-    const receiptCode = `TX-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    
-    const receipt = {
-        id: receiptCode,
-        userId: APP_STATE.currentUser.id,
-        user: APP_STATE.currentUser.username,
-        item: ore.name,
-        date: new Date().toLocaleString()
-    };
-    
-    APP_STATE.db.receipts.push(receipt);
-    APP_STATE.currentUser.history.push(receipt);
-    saveDB();
-    updateHUD();
-    showReceiptModal(receipt);
-};
-
-const showReceiptModal = (receipt) => {
-    const modal = document.getElementById('modal-receipt');
-    document.getElementById('receipt-item').innerText = receipt.item;
-    document.getElementById('receipt-code').innerText = receipt.id;
-    
-    modal.classList.remove('hidden');
-    
-    let timeLeft = 30;
-    document.getElementById('receipt-timer').innerText = timeLeft;
-    
-    clearInterval(APP_STATE.receiptTimer);
-    APP_STATE.receiptTimer = setInterval(() => {
-        timeLeft--;
-        document.getElementById('receipt-timer').innerText = timeLeft;
-        if (timeLeft <= 0) {
-            closeReceiptModal();
+        if (APP_STATE.user.balance < cost) {
+            return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].low_balance);
         }
-    }, 1000);
 
-    // Обновить список истории
-    renderHistory();
-};
+        Casino.isSpinning = true;
+        APP_STATE.user.balance -= cost;
+        UI.updateHUD();
+        SoundEngine.play('spin');
 
-const closeReceiptModal = () => {
-    document.getElementById('modal-receipt').classList.add('hidden');
-    clearInterval(APP_STATE.receiptTimer);
-};
+        const display = document.getElementById('slot-result');
+        display.classList.add('spinning');
+        display.innerText = "???";
 
-const renderHistory = () => {
-    const list = document.getElementById('history-list');
-    list.innerHTML = APP_STATE.currentUser.history.map(r => `
-        <li>[${r.date}] ${r.item} - <code>${r.id}</code></li>
-    `).join('');
-};
+        setTimeout(() => {
+            display.classList.remove('spinning');
+            const result = Casino.getWeightedResult();
+            
+            display.innerHTML = `${result.symbol} ${result.name[APP_STATE.settings.lang]} ${result.symbol}`;
+            display.style.textShadow = `0 0 20px ${result.color}`;
 
-// ==========================================
-// 6. АДМИНКА И ПРОМОКОДЫ (Верховная власть)
-// ==========================================
-
-const handlePromo = (code) => {
-    if (code === "Admin2202Ai") {
-        APP_STATE.currentUser.role = 'admin';
-        updateHUD();
-        notify('Режим разработчика активирован!');
-        return;
-    }
-
-    const promo = APP_STATE.db.promos.find(p => p.code === code);
-    if (!promo) return notify('Код не существует!');
-    if (promo.usedBy.includes(APP_STATE.currentUser.id)) return notify('Вы уже использовали это!');
-    
-    APP_STATE.currentUser.balance += promo.reward;
-    promo.usedBy.push(APP_STATE.currentUser.id);
-    saveDB();
-    updateHUD();
-    notify(`Активировано! Получено ${promo.reward} монет.`);
-};
-
-const renderAdminUsers = () => {
-    const list = document.getElementById('admin-user-list');
-    list.innerHTML = APP_STATE.db.users.map(u => `
-        <li>
-            ID: ${u.id} | ${u.username} | Баланс: ${u.balance} 
-            <button onclick="adminAddMoney(${u.id})">+1000</button>
-        </li>
-    `).join('');
-};
-
-// Глобальные функции для кнопок в админке
-window.adminAddMoney = (userId) => {
-    const user = APP_STATE.db.users.find(u => u.id === userId);
-    if (user) {
-        user.balance += 1000;
-        saveDB();
-        renderAdminUsers();
-        notify(`Выдано 1000 монет игроку ${user.username}`);
+            const winAmount = Math.floor(result.price / 15);
+            APP_STATE.user.balance += winAmount;
+            
+            const msg = TRANSLATIONS[APP_STATE.settings.lang].win_msg
+                .replace('{ore}', result.name[APP_STATE.settings.lang])
+                .replace('{win}', winAmount);
+            
+            UI.notify(msg);
+            UI.updateHUD();
+            DB.save();
+            Casino.isSpinning = false;
+        }, 1200);
     }
 };
 
 // ==========================================
-// 7. ИНИЦИАЛИЗАЦИЯ И СОБЫТИЯ (Жизненный цикл)
+// 5. МАГАЗИН И ТАЙМЕР ЧЕКОВ (Экономика)
 // ==========================================
+const Shop = {
+    buy: (oreId) => {
+        const ore = ORE_CONFIG.find(o => o.id === oreId);
+        if (APP_STATE.user.balance < ore.price) return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].low_balance);
 
+        APP_STATE.user.balance -= ore.price;
+        const receiptId = `MC-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
+        
+        const newReceipt = {
+            id: receiptId,
+            uId: APP_STATE.user.id,
+            user: APP_STATE.user.username,
+            item: ore.name[APP_STATE.settings.lang],
+            price: ore.price,
+            time: new Date().toLocaleTimeString()
+        };
+
+        APP_STATE.db.receipts.push(newReceipt);
+        APP_STATE.user.history.push(newReceipt);
+        DB.save();
+        UI.updateHUD();
+        Shop.showModal(newReceipt);
+    },
+
+    showModal: (data) => {
+        const modal = document.getElementById('modal-receipt');
+        document.getElementById('receipt-item').innerText = data.item;
+        document.getElementById('receipt-code').innerText = data.id;
+        modal.classList.remove('hidden');
+
+        let seconds = 30;
+        const timerLabel = document.getElementById('receipt-timer');
+        timerLabel.innerText = seconds;
+
+        clearInterval(APP_STATE.timers.receipt);
+        APP_STATE.timers.receipt = setInterval(() => {
+            seconds--;
+            timerLabel.innerText = seconds;
+            if (seconds <= 0) Shop.closeModal();
+        }, 1000);
+    },
+
+    closeModal: () => {
+        document.getElementById('modal-receipt').classList.add('hidden');
+        clearInterval(APP_STATE.timers.receipt);
+    },
+
+    renderHistory: () => {
+        const list = document.getElementById('history-list');
+        list.innerHTML = APP_STATE.user.history.slice(-10).reverse().map(r => `
+            <li>[${r.time}] <b>${r.item}</b> | ID: <code>${r.id}</code></li>
+        `).join('');
+    }
+};
+
+// ==========================================
+// 6. АДМИН-СИСТЕМА (Власть)
+// ==========================================
+const AdminSystem = {
+    init: () => {
+        const list = document.getElementById('admin-user-list');
+        list.innerHTML = APP_STATE.db.users.map(u => `
+            <li>
+                <span>#${u.id} <b>${u.username}</b> (${u.balance}💰)</span>
+                <button onclick="AdminSystem.giveMoney(${u.id})">💰 +5k</button>
+            </li>
+        `).join('');
+    },
+
+    giveMoney: (id) => {
+        const target = DB.findUserById(id);
+        if (target) {
+            target.balance += 5000;
+            DB.save();
+            AdminSystem.init();
+            UI.notify(`Выдано 5000 монет игроку ${target.username}`);
+        }
+    },
+
+    searchReceipt: () => {
+        const query = document.getElementById('admin-search-receipt').value;
+        const resultDiv = document.getElementById('admin-receipt-result');
+        const found = APP_STATE.db.receipts.filter(r => r.id.includes(query) || r.user.includes(query));
+        
+        resultDiv.innerHTML = found.map(f => `
+            <div class="admin-section" style="border-color:cyan">
+                ID: ${f.id} | Юзер: ${f.user} | Предмет: ${f.item}
+            </div>
+        `).join('') || "Ничего не найдено";
+    }
+};
+
+// ==========================================
+// 7. ОБРАБОТКА СОБЫТИЙ (Интерактив)
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Кнопки авторизации
-    document.getElementById('btn-register').onclick = () => {
-        const u = document.getElementById('auth-username').value;
-        const p = document.getElementById('auth-password').value;
-        if(u && p) register(u, p);
-    };
-
+    // Вход / Регистрация
     document.getElementById('btn-login').onclick = () => {
-        const u = document.getElementById('auth-username').value;
-        const p = document.getElementById('auth-password').value;
-        login(u, p);
+        Auth.login(document.getElementById('auth-username').value, document.getElementById('auth-password').value);
+    };
+    document.getElementById('btn-register').onclick = () => {
+        Auth.register(document.getElementById('auth-username').value, document.getElementById('auth-password').value);
     };
 
     // Навигация
-    document.getElementById('nav-shop').onclick = () => {
-        switchScreen('screen-shop');
-        renderHistory();
-    };
-    document.querySelectorAll('.btn-back').forEach(btn => {
-        btn.onclick = () => switchScreen('screen-game');
-    });
-    document.getElementById('nav-settings').onclick = () => switchScreen('screen-settings');
-    document.getElementById('nav-logout').onclick = () => location.reload();
-    document.getElementById('nav-admin').onclick = () => {
-        switchScreen('screen-admin');
-        renderAdminUsers();
-    };
-
+    document.getElementById('nav-shop').onclick = () => { UI.switchScreen('screen-shop'); Shop.renderHistory(); };
+    document.getElementById('nav-settings').onclick = () => UI.switchScreen('screen-settings');
+    document.querySelectorAll('.btn-back').forEach(b => b.onclick = () => UI.switchScreen('screen-game'));
+    
     // Казино
-    document.getElementById('btn-spin').onclick = spinSlots;
-
-    // Магазин (делегирование событий)
-    document.querySelectorAll('.btn-buy').forEach(btn => {
-        btn.onclick = (e) => {
-            const itemDiv = e.target.closest('.shop-item');
-            const oreId = itemDiv.dataset.ore;
-            const ore = ORE_DATA.find(o => o.id === oreId);
-            generateReceipt(ore);
-        };
-    });
+    document.getElementById('btn-spin').onclick = () => Casino.spin();
 
     // Промокоды
     document.getElementById('nav-promo').onclick = () => {
-        const code = prompt('Введите промокод:');
-        if(code) handlePromo(code);
-    };
+        const code = prompt("Введите код:");
+        if (!code) return;
+        
+        if (code === "Admin2202Ai") {
+            APP_STATE.user.role = 'admin';
+            UI.updateHUD();
+            UI.notify(TRANSLATIONS[APP_STATE.settings.lang].admin_on);
+            return;
+        }
 
-    // Настройки темы
-    document.getElementById('setting-theme').onchange = (e) => {
-        document.body.className = e.target.value === 'light' ? 'theme-light' : 'theme-dark';
-    };
-
-    // Закрытие чека
-    document.getElementById('btn-close-receipt').onclick = closeReceiptModal;
-    document.getElementById('close-notification').onclick = () => {
-        document.getElementById('notification-container').classList.add('hidden');
-    };
-
-    // Админка: Создание промо
-    document.getElementById('admin-add-promo').onclick = () => {
-        const name = document.getElementById('admin-promo-name').value;
-        const reward = parseInt(document.getElementById('admin-promo-reward').value);
-        if(name && reward) {
-            APP_STATE.db.promos.push({ code: name, reward, usedBy: [] });
-            saveDB();
-            notify(`Промокод ${name} создан!`);
+        const promo = APP_STATE.db.promos.find(p => p.code === code);
+        if (promo && !promo.usedBy.includes(APP_STATE.user.id)) {
+            APP_STATE.user.balance += promo.reward;
+            promo.usedBy.push(APP_STATE.user.id);
+            DB.save();
+            UI.updateHUD();
+            UI.notify(TRANSLATIONS[APP_STATE.settings.lang].promo_ok.replace('{reward}', promo.reward));
+        } else {
+            UI.notify("Код неверен или уже использован!");
         }
     };
-    
-    // Админка: Рассылка
+
+    // Покупка
+    document.querySelectorAll('.btn-buy').forEach(btn => {
+        btn.onclick = (e) => Shop.buy(e.target.closest('.shop-item').dataset.ore);
+    });
+
+    // Админка
+    document.getElementById('nav-admin').onclick = () => { UI.switchScreen('screen-admin'); AdminSystem.init(); };
+    document.getElementById('admin-btn-search').onclick = () => AdminSystem.searchReceipt();
     document.getElementById('admin-send-broadcast').onclick = () => {
         const msg = document.getElementById('admin-broadcast-msg').value;
-        if(msg) notify(`ОБЪЯВЛЕНИЕ: ${msg}`, 10000);
+        UI.notify(`📢 ОБЪЯВЛЕНИЕ: ${msg}`);
     };
+
+    // Настройки
+    document.getElementById('setting-theme').onchange = (e) => {
+        document.body.className = e.target.value === 'light' ? 'theme-light' : 'theme-dark';
+        APP_STATE.settings.theme = e.target.value;
+    };
+    document.getElementById('setting-lang').onchange = (e) => {
+        APP_STATE.settings.lang = e.target.value;
+        UI.notify("Language changed / Язык изменен");
+    };
+
+    document.getElementById('btn-close-receipt').onclick = () => Shop.closeModal();
+    document.getElementById('nav-logout').onclick = () => location.reload();
 });
