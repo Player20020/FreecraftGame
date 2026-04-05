@@ -159,50 +159,40 @@ const Auth = {
 // ==========================================
 const Casino = {
     isSpinning: false,
-
+    cooldown: false,
     getWeightedResult: () => {
         const pool = [];
-        ORE_CONFIG.forEach(ore => {
-            for (let i = 0; i < ore.weight; i++) pool.push(ore);
-        });
+        ORE_CONFIG.forEach(ore => { for (let i = 0; i < ore.weight; i++) pool.push(ore); });
         return pool[Math.floor(Math.random() * pool.length)];
     },
-
     spin: () => {
-        if (Casino.isSpinning) return;
-        const cost = 10;
-
-        if (APP_STATE.user.balance < cost) {
-            return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].low_balance);
-        }
-
+        if (Casino.isSpinning || Casino.cooldown) return;
+        const btn = document.getElementById('btn-spin');
+        if (APP_STATE.user.balance < 10) return UI.notify("Мало монет!");
         Casino.isSpinning = true;
-        APP_STATE.user.balance -= cost;
+        APP_STATE.user.balance -= 10;
         UI.updateHUD();
-        SoundEngine.play('spin');
-
         const display = document.getElementById('slot-result');
         display.classList.add('spinning');
-        display.innerText = "???";
-
+        btn.disabled = true;
         setTimeout(() => {
             display.classList.remove('spinning');
-            const result = Casino.getWeightedResult();
-            
-            display.innerHTML = `${result.symbol} ${result.name[APP_STATE.settings.lang]} ${result.symbol}`;
-            display.style.textShadow = `0 0 20px ${result.color}`;
-
-            const winAmount = Math.floor(result.price / 15);
-            APP_STATE.user.balance += winAmount;
-            
-            const msg = TRANSLATIONS[APP_STATE.settings.lang].win_msg
-                .replace('{ore}', result.name[APP_STATE.settings.lang])
-                .replace('{win}', winAmount);
-            
-            UI.notify(msg);
-            UI.updateHUD();
-            DB.save();
+            const res = Casino.getWeightedResult();
+            display.innerHTML = `${res.symbol} ${res.name[APP_STATE.settings.lang]} ${res.symbol}`;
+            display.style.textShadow = `0 0 20px ${res.color}`;
+            const win = Math.floor(res.price / 50); 
+            APP_STATE.user.balance += win;
+            UI.notify(`Выпало: ${res.name[APP_STATE.settings.lang]} (+${win} 💰)`);
+            UI.updateHUD(); DB.save();
             Casino.isSpinning = false;
+            Casino.cooldown = true;
+            let timer = 3;
+            btn.innerText = `ЖДИ ${timer}с`;
+            const cd = setInterval(() => {
+                timer--;
+                if (timer > 0) btn.innerText = `ЖДИ ${timer}с`;
+                else { clearInterval(cd); Casino.cooldown = false; btn.disabled = false; btn.innerText = "КРУТИТЬ"; }
+            }, 1000);
         }, 1200);
     }
 };
