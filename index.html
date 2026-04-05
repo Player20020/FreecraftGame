@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineCasino: Mini-Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark"> <div id="notification-container" class="hidden">
+        <p id="notification-text"></p>
+        <button id="close-notification">Закрыть</button>
+    </div>
+
+    <div id="app">
+        <section id="screen-auth" class="screen active">
+            <h1>Вход в игру</h1>
+            <div class="auth-box">
+                <input type="text" id="auth-username" placeholder="Никнейм">
+                <input type="password" id="auth-password" placeholder="Пароль">
+                <button id="btn-login">Войти</button>
+                <button id="btn-register">Регистрация</button>
+            </div>
+        </section>
+
+        <section id="screen-game" class="screen hidden">
+            <header>
+                <div class="user-info">
+                    <span id="player-name">Игрок</span>
+                    <span id="player-balance">Баланс: 0 монет</span>
+                </div>
+                <nav>
+                    <button id="nav-shop">Магазин</button>
+                    <button id="nav-settings">Настройки</button>
+                    <button id="nav-promo">Промокод</button>
+                    <button id="nav-admin" class="hidden">Админка</button> 
+                    <button id="nav-logout">Выход</button>
+                </nav>
+            </header>
+
+            <main class="casino-container">
+                <h2>Казино "Шахта"</h2>
+                <div class="slot-machine">
+                    <div id="slot-result" class="slot-display">🎰 Готов крутить?</div>
+                </div>
+                <button id="btn-spin" class="spin-button">Крутить (10 монет)</button>
+            </main>
+        </section>
+
+        <section id="screen-shop" class="screen hidden">
+            <header>
+                <h2>Магазин Руд</h2>
+                <button class="btn-back">Назад в игру</button>
+            </header>
+            <div class="shop-items">
+                <div class="shop-item" data-ore="netherite" data-price="2500">
+                    <span>Незерит - 2500 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="diamond" data-price="1000">
+                    <span>Алмаз - 1000 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="iron" data-price="600">
+                    <span>Железо - 600 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="emerald" data-price="450">
+                    <span>Изумруд - 450 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="gold" data-price="300">
+                    <span>Золото - 300 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="lapis" data-price="225">
+                    <span>Лазурит - 225 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+                <div class="shop-item" data-ore="coal" data-price="100">
+                    <span>Уголь - 100 монет</span>
+                    <button class="btn-buy">Купить чек</button>
+                </div>
+            </div>
+            
+            <div class="receipt-history">
+                <h3>История чеков</h3>
+                <ul id="history-list"></ul>
+            </div>
+        </section>
+
+        <section id="screen-settings" class="screen hidden">
+            <header>
+                <h2>Настройки</h2>
+                <button class="btn-back">Назад</button>
+            </header>
+            <div class="settings-options">
+                <label>
+                    Звук: <input type="checkbox" id="setting-sound" checked>
+                </label>
+                <label>
+                    Тема: 
+                    <select id="setting-theme">
+                        <option value="dark">Темная</option>
+                        <option value="light">Яркая</option>
+                    </select>
+                </label>
+                <label>
+                    Язык: 
+                    <select id="setting-lang">
+                        <option value="ru">Русский</option>
+                        <option value="en">English</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+
+        <section id="screen-admin" class="screen hidden">
+            <header>
+                <h2>Админ Панель</h2>
+                <button class="btn-back">Выход из ПУ</button>
+            </header>
+            <div class="admin-controls">
+                <div class="admin-section">
+                    <h3>Пользователи</h3>
+                    <ul id="admin-user-list"></ul>
+                </div>
+                <div class="admin-section">
+                    <h3>Управление Промокодами</h3>
+                    <input type="text" id="admin-promo-name" placeholder="Название кода">
+                    <input type="number" id="admin-promo-reward" placeholder="Награда (монеты)">
+                    <button id="admin-add-promo">Создать</button>
+                    <ul id="admin-promo-list"></ul>
+                </div>
+                <div class="admin-section">
+                    <h3>Рассылка</h3>
+                    <input type="text" id="admin-broadcast-msg" placeholder="Сообщение всем">
+                    <button id="admin-send-broadcast">Отправить</button>
+                </div>
+                <div class="admin-section">
+                    <h3>Поиск чеков</h3>
+                    <input type="text" id="admin-search-receipt" placeholder="ID чека или пользователя">
+                    <button id="admin-btn-search">Найти</button>
+                    <div id="admin-receipt-result"></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div id="modal-receipt" class="modal hidden">
+        <div class="modal-content">
+            <h2>ЧЕК ОПЛАТЫ</h2>
+            <p><strong>Предмет:</strong> <span id="receipt-item"></span></p>
+            <p><strong>Код чека:</strong> <span id="receipt-code"></span></p>
+            <div class="receipt-instructions">
+                <p>Инструкция: Сделайте скриншот этого чека и отправьте его администратору (Discord/Telegram).</p>
+            </div>
+            <p class="timer-text">Окно закроется через: <span id="receipt-timer">30</span> сек.</p>
+            <button id="btn-close-receipt">Закрыть чек</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
