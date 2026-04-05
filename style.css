@@ -1,0 +1,451 @@
+/* =========================================
+   1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ТЕМЫ
+   ========================================= */
+:root {
+    /* Темная тема (основная) */
+    --bg-color: #0b0c10;
+    --bg-gradient: radial-gradient(circle at top, #1f2833, #0b0c10);
+    --text-color: #c5c6c7;
+    --text-heading: #ffffff;
+    
+    /* Неоновые акценты (Киберпанк стиль) */
+    --accent-cyan: #66fcf1;
+    --accent-cyan-glow: rgba(102, 252, 241, 0.4);
+    --accent-teal: #45a29e;
+    --accent-pink: #ff00ff;
+    --accent-danger: #ff4c4c;
+
+    /* Эффект Глассморфизма */
+    --glass-bg: rgba(31, 40, 51, 0.4);
+    --glass-border: rgba(102, 252, 241, 0.15);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    --blur-intensity: blur(12px);
+    
+    --border-radius: 16px;
+    --transition-speed: 0.3s;
+}
+
+/* Светлая тема (переключается в настройках) */
+body.theme-light {
+    --bg-color: #f4f4f9;
+    --bg-gradient: radial-gradient(circle at top, #ffffff, #e0e5ec);
+    --text-color: #333333;
+    --text-heading: #111111;
+    
+    --accent-cyan: #008080;
+    --accent-cyan-glow: rgba(0, 128, 128, 0.3);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* =========================================
+   2. БАЗОВЫЕ СТИЛИ
+   ========================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: var(--bg-color);
+    background-image: var(--bg-gradient);
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    transition: background var(--transition-speed), color var(--transition-speed);
+}
+
+h1, h2, h3 {
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Кастомный скроллбар */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--accent-teal);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-cyan);
+}
+
+/* =========================================
+   3. ОБЩИЕ ЭЛЕМЕНТЫ (Глассморфизм, Кнопки, Инпуты)
+   ========================================= */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-intensity);
+    -webkit-backdrop-filter: var(--blur-intensity);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+}
+
+button {
+    background: transparent;
+    color: var(--accent-cyan);
+    border: 1px solid var(--accent-cyan);
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all var(--transition-speed);
+    outline: none;
+}
+
+button:hover {
+    background: var(--accent-cyan);
+    color: var(--bg-color);
+    box-shadow: 0 0 15px var(--accent-cyan-glow);
+    transform: translateY(-2px);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: none;
+    border-bottom: 2px solid var(--glass-border);
+    color: var(--text-heading);
+    border-radius: 4px 4px 0 0;
+    outline: none;
+    transition: border-color var(--transition-speed);
+}
+
+input:focus, select:focus {
+    border-bottom: 2px solid var(--accent-cyan);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* =========================================
+   4. ЛЕЙАУТ И ЭКРАНЫ
+   ========================================= */
+#app {
+    width: 100%;
+    max-width: 900px;
+    min-height: 80vh;
+    position: relative;
+    padding: 1rem;
+}
+
+/* Логика переключения экранов */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.95);
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.screen.active {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* =========================================
+   5. ЭКРАН АВТОРИЗАЦИИ
+   ========================================= */
+.auth-box {
+    max-width: 400px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.auth-box input {
+    font-size: 1.1rem;
+}
+
+/* =========================================
+   6. ГЛАВНЫЙ ЭКРАН (ШАПКА И КАЗИНО)
+   ========================================= */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    margin-bottom: 2rem;
+    border-radius: var(--border-radius);
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-intensity);
+    border: 1px solid var(--glass-border);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.user-info {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent-cyan);
+    display: flex;
+    gap: 1.5rem;
+}
+
+nav {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+nav button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+#nav-admin {
+    border-color: var(--accent-pink);
+    color: var(--accent-pink);
+}
+#nav-admin:hover {
+    background: var(--accent-pink);
+    color: white;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+}
+
+/* Блок казино */
+.casino-container {
+    text-align: center;
+    padding: 3rem;
+}
+
+.slot-machine {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--accent-teal);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 500px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px var(--accent-cyan-glow);
+}
+
+.slot-display {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px var(--accent-cyan-glow);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Анимация кручения барабана */
+@keyframes spin-anim {
+    0% { transform: translateY(-10px); opacity: 0.5; }
+    50% { transform: translateY(10px); opacity: 1; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+.spinning {
+    animation: spin-anim 0.1s infinite linear;
+    color: var(--text-color);
+    text-shadow: none;
+}
+
+.spin-button {
+    font-size: 1.5rem;
+    padding: 1rem 3rem;
+    border-radius: 50px;
+    border-width: 2px;
+}
+
+/* =========================================
+   7. МАГАЗИН И ИСТОРИЯ
+   ========================================= */
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.shop-item {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    transition: transform var(--transition-speed);
+}
+
+.shop-item:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-teal);
+}
+
+.shop-item span {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.receipt-history {
+    background: var(--glass-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+}
+
+#history-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#history-list li {
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--glass-border);
+    font-family: monospace;
+    font-size: 1.1rem;
+}
+
+/* =========================================
+   8. АДМИНКА И НАСТРОЙКИ
+   ========================================= */
+.admin-controls, .settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.admin-section {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border-left: 4px solid var(--accent-pink);
+}
+
+.settings-options label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+/* =========================================
+   9. МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ
+   ========================================= */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-color);
+    border: 2px solid var(--accent-cyan);
+    padding: 2.5rem;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 0 30px var(--accent-cyan-glow);
+}
+
+.modal-content h2 {
+    color: var(--accent-cyan);
+}
+
+.receipt-instructions {
+    background: rgba(255, 76, 76, 0.1);
+    border-left: 4px solid var(--accent-danger);
+    padding: 1rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.timer-text {
+    font-weight: bold;
+    color: var(--accent-danger);
+    margin-bottom: 1.5rem;
+}
+
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-intensity);
+    border: 1px solid var(--accent-cyan);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 0 15px var(--accent-cyan-glow);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* =========================================
+   10. АДАПТИВНОСТЬ (МОБИЛЬНЫЕ УСТРОЙСТВА)
+   ========================================= */
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    nav {
+        justify-content: center;
+    }
+    
+    .slot-display {
+        font-size: 1.8rem;
+    }
+}
+
