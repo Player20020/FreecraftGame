@@ -175,6 +175,11 @@ const Casino = {
         UI.updateHUD();
         
         const display = document.getElementById('slot-result');
+        display.style.minHeight = "150px"; 
+        display.style.display = "flex";
+        display.style.flexDirection = "column";
+        display.style.alignItems = "center";
+        display.style.justifyContent = "center";
         btn.disabled = true;
 
         let speed = 50; 
@@ -184,7 +189,7 @@ const Casino = {
         const shuffle = () => {
             count++;
             const randomOre = ORE_CONFIG[Math.floor(Math.random() * ORE_CONFIG.length)];
-            display.innerHTML = `<img src="${randomOre.img}" style="width:85px; height:85px; filter:blur(4px); opacity:0.6;">`;
+            display.innerHTML = `<img src="${randomOre.img}" style="width:80px; height:80px; filter:blur(3px); opacity:0.6;">`;
 
             if (count < total) {
                 speed += (count * 1.5); 
@@ -192,9 +197,9 @@ const Casino = {
             } else {
                 const res = Casino.getWeightedResult();
                 display.innerHTML = `
-                    <div style="animation: bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)">
-                        <img src="${res.img}" style="width:120px; height:120px; filter:drop-shadow(0 0 20px ${res.color})">
-                        <div style="color:${res.color}; font-size:1.5rem; margin-top:10px; font-weight:bold; text-transform:uppercase;">
+                    <div style="animation: bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center;">
+                        <img src="${res.img}" style="width:100px; height:100px; filter:drop-shadow(0 0 20px ${res.color})">
+                        <div style="color:${res.color}; font-size:1.4rem; margin-top:12px; font-weight:bold; text-transform:uppercase; text-shadow: 0 0 10px rgba(0,0,0,0.5);">
                             ${res.name[APP_STATE.settings.lang]}
                         </div>
                     </div>
