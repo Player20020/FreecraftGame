@@ -11,13 +11,13 @@
 // 1. КОНСТАНТЫ И КОНФИГУРАЦИЯ (Генетический код)
 // ==========================================
 const ORE_CONFIG = [
-    { id: 'netherite', name: { ru: 'Незерит', en: 'Netherite' }, symbol: '🌌', price: 2500, weight: 1, color: '#a476a8' },
-    { id: 'diamond', name: { ru: 'Алмаз', en: 'Diamond' }, symbol: '💎', price: 1000, weight: 5, color: '#33ebff' },
-    { id: 'iron', name: { ru: 'Железо', en: 'Iron' }, symbol: '⚙️', price: 600, weight: 15, color: '#ced4da' },
-    { id: 'emerald', name: { ru: 'Изумруд', en: 'Emerald' }, symbol: '✳️', price: 450, weight: 10, color: '#17dd62' },
-    { id: 'gold', name: { ru: 'Золото', en: 'Gold' }, symbol: '📀', price: 300, weight: 20, color: '#ffec4a' },
-    { id: 'lapis', name: { ru: 'Лазурит', en: 'Lapis' }, symbol: '🔹', price: 225, weight: 25, color: '#1a42ff' },
-    { id: 'coal', name: { ru: 'Уголь', en: 'Coal' }, symbol: '🌑', price: 100, weight: 40, color: '#3d3d3d' }
+    { id: 'coal', name: { ru: 'Уголь', en: 'Coal' }, img: 'assets/coal.webp', price: 100, weight: 40, color: '#444' },
+    { id: 'lapis', name: { ru: 'Лазурит', en: 'Lapis' }, img: 'assets/lapis.webp', price: 225, weight: 25, color: '#1a42ff' },
+    { id: 'gold', name: { ru: 'Золото', en: 'Gold' }, img: 'assets/gold.webp', price: 300, weight: 15, color: '#ffd700' },
+    { id: 'iron', name: { ru: 'Железо', en: 'Iron' }, img: 'assets/iron.webp', price: 600, weight: 20, color: '#ced4da' },
+    { id: 'emerald', name: { ru: 'Изумруд', en: 'Emerald' }, img: 'assets/emerald.webp', price: 450, weight: 10, color: '#00ff00' },
+    { id: 'diamond', name: { ru: 'Алмаз', en: 'Diamond' }, img: 'assets/diamond.png', price: 1000, weight: 5, color: '#00ffff' },
+    { id: 'netherite', name: { ru: 'Незерит', en: 'Netherite' }, img: 'assets/netherite.png', price: 2500, weight: 1, color: '#a476a8' }
 ];
 
 const TRANSLATIONS = {
