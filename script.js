@@ -169,31 +169,56 @@ const Casino = {
         if (Casino.isSpinning || Casino.cooldown) return;
         const btn = document.getElementById('btn-spin');
         if (APP_STATE.user.balance < 10) return UI.notify("Мало монет!");
+
         Casino.isSpinning = true;
         APP_STATE.user.balance -= 10;
         UI.updateHUD();
+        
         const display = document.getElementById('slot-result');
-        display.classList.add('spinning');
         btn.disabled = true;
-        setTimeout(() => {
-            display.classList.remove('spinning');
-            const res = Casino.getWeightedResult();
-            display.innerHTML = `${res.symbol} ${res.name[APP_STATE.settings.lang]} ${res.symbol}`;
-            display.style.textShadow = `0 0 20px ${res.color}`;
-            const win = Math.floor(res.price / 50); 
-            APP_STATE.user.balance += win;
-            UI.notify(`Выпало: ${res.name[APP_STATE.settings.lang]} (+${win} 💰)`);
-            UI.updateHUD(); DB.save();
-            Casino.isSpinning = false;
-            Casino.cooldown = true;
-            let timer = 3;
-            btn.innerText = `ЖДИ ${timer}с`;
-            const cd = setInterval(() => {
-                timer--;
-                if (timer > 0) btn.innerText = `ЖДИ ${timer}с`;
-                else { clearInterval(cd); Casino.cooldown = false; btn.disabled = false; btn.innerText = "КРУТИТЬ"; }
-            }, 1000);
-        }, 1200);
+
+        let speed = 50; 
+        let count = 0;
+        const total = 25; 
+
+        const shuffle = () => {
+            count++;
+            const randomOre = ORE_CONFIG[Math.floor(Math.random() * ORE_CONFIG.length)];
+            display.innerHTML = `<img src="${randomOre.img}" style="width:85px; height:85px; filter:blur(4px); opacity:0.6;">`;
+
+            if (count < total) {
+                speed += (count * 1.5); 
+                setTimeout(shuffle, speed);
+            } else {
+                const res = Casino.getWeightedResult();
+                display.innerHTML = `
+                    <div style="animation: bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)">
+                        <img src="${res.img}" style="width:120px; height:120px; filter:drop-shadow(0 0 20px ${res.color})">
+                        <div style="color:${res.color}; font-size:1.5rem; margin-top:10px; font-weight:bold; text-transform:uppercase;">
+                            ${res.name[APP_STATE.settings.lang]}
+                        </div>
+                    </div>
+                `;
+                const win = Math.floor(res.price / 50); 
+                APP_STATE.user.balance += win;
+                UI.notify(`Выпало: ${res.name[APP_STATE.settings.lang]} (+${win} 💰)`);
+                UI.updateHUD();
+                DB.save();
+                Casino.isSpinning = false;
+                Casino.startCooldown(btn);
+            }
+        };
+        shuffle();
+    },
+    startCooldown: (btn) => {
+        Casino.cooldown = true;
+        let timer = 3;
+        btn.innerText = `ЖДИ ${timer}с`;
+        const cd = setInterval(() => {
+            timer--;
+            if (timer > 0) btn.innerText = `ЖДИ ${timer}с`;
+            else { clearInterval(cd); Casino.cooldown = false; btn.disabled = false; btn.innerText = "КРУТИТЬ"; }
+        }, 1000);
     }
 };
 
