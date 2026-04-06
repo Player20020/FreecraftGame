@@ -204,7 +204,7 @@ const Casino = {
                         </div>
                     </div>
                 `;
-                const win = Math.floor(res.price / 50); 
+                const win = res.payout;
                 APP_STATE.user.balance += win;
                 UI.notify(`Выпало: ${res.name[APP_STATE.settings.lang]} (+${win} 💰)`);
                 UI.updateHUD();
