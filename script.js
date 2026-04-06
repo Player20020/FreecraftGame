@@ -234,9 +234,19 @@ const Casino = {
 const Shop = {
     buy: (oreId) => {
         const ore = ORE_CONFIG.find(o => o.id === oreId);
-        if (APP_STATE.user.balance < ore.price) return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].low_balance);
+        if (!ore) return;
 
-        APP_STATE.user.balance -= ore.price;
+        // Фикс: берем цену из конфига, если ее нет — ставим 0
+        const cost = Number(ore.price) || 0; 
+
+        // Фикс: лечим баланс, если он NaN
+        if (isNaN(APP_STATE.user.balance)) APP_STATE.user.balance = 500;
+
+        if (APP_STATE.user.balance < cost) {
+            return UI.notify(TRANSLATIONS[APP_STATE.settings.lang].low_balance);
+        }
+
+        APP_STATE.user.balance -= cost;
         const receiptId = `MC-${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
         
         const newReceipt = {
@@ -244,9 +254,10 @@ const Shop = {
             uId: APP_STATE.user.id,
             user: APP_STATE.user.username,
             item: ore.name[APP_STATE.settings.lang],
-            price: ore.price,
+            price: cost,
             time: new Date().toLocaleTimeString()
         };
+
 
         APP_STATE.db.receipts.push(newReceipt);
         APP_STATE.user.history.push(newReceipt);
