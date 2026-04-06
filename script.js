@@ -204,7 +204,8 @@ const Casino = {
                         </div>
                     </div>
                 `;
-                const win = res.payout;
+                const win = Number(res.payout) || 0; 
+                if (isNaN(APP_STATE.user.balance)) APP_STATE.user.balance = 500; 
                 APP_STATE.user.balance += win;
                 UI.notify(`Выпало: ${res.name[APP_STATE.settings.lang]} (+${win} 💰)`);
                 UI.updateHUD();
